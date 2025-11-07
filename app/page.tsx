@@ -9,6 +9,7 @@ import {
   Cloud,
   Smartphone,
   ArrowRight,
+  FileScan,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import ConversionCard from '@/components/ConversionCard';
@@ -64,15 +65,21 @@ export default function Home() {
               />
               <ConversionCard
                 title="Word to PDF"
-                description="Transformasi dokumen Word Anda menjadi PDF dengan mudah"
+                description="Konversi dokumen Anda menjadi PDF"
                 icon={<FileText className="w-7 h-7 text-white" />}
                 acceptedFormats=".doc,.docx"
               />
               <ConversionCard
                 title="PowerPoint to PDF"
-                description="Konversi presentasi PowerPoint Anda ke PDF dalam satu klik"
+                description="Konversi PowerPoint Anda ke PDF"
                 icon={<Presentation className="w-7 h-7 text-white" />}
                 acceptedFormats=".ppt,.pptx"
+              />
+              <ConversionCard
+                title="OCR"
+                description="Ekstrak teks dari gambar & dokumen"
+                icon={<FileScan className="w-7 h-7 text-white" />}
+                acceptedFormats=".jpg,.jpeg,.png,.pdf"
               />
             </div>
           </div>
@@ -134,9 +141,6 @@ export default function Home() {
                   <span className="text-3xl md:text-4xl font-bold text-white">
                     1
                   </span>
-                  <div className="absolute -right-4 top-1/2 -translate-y-1/2 hidden md:block">
-                    <ArrowRight className="w-8 h-8 text-primary opacity-30" />
-                  </div>
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
                   Unggah Dokumen
@@ -151,9 +155,6 @@ export default function Home() {
                   <span className="text-3xl md:text-4xl font-bold text-white">
                     2
                   </span>
-                  <div className="absolute -right-4 top-1/2 -translate-y-1/2 hidden md:block">
-                    <ArrowRight className="w-8 h-8 text-primary opacity-30" />
-                  </div>
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
                   Konversi dengan Satu Klik

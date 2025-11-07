@@ -19,7 +19,7 @@ export default function Header() {
                 alt="Dokumi Logo"
                 width={24}
                 height={24}
-                className="absolute w-24"
+                className="w-24"
               />
             </div>
             <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-blue-700 bg-clip-text text-transparent">
@@ -38,7 +38,7 @@ export default function Header() {
               href="#how-it-works"
               className="text-gray-700 hover:text-primary transition-colors font-medium"
             >
-              Mulai dengan Mudah
+              Langkah
             </a>
             <a
               href="#about"
@@ -72,24 +72,24 @@ export default function Header() {
               className="block py-2 text-gray-700 hover:text-primary transition-colors font-medium"
               onClick={() => setIsMenuOpen(false)}
             >
-              Features
+              Fitur
             </a>
             <a
               href="#how-it-works"
               className="block py-2 text-gray-700 hover:text-primary transition-colors font-medium"
               onClick={() => setIsMenuOpen(false)}
             >
-              How It Works
+              Langkah
             </a>
             <a
               href="#about"
               className="block py-2 text-gray-700 hover:text-primary transition-colors font-medium"
               onClick={() => setIsMenuOpen(false)}
             >
-              About
+              Tentang
             </a>
             <Button className="w-full bg-primary hover:bg-blue-700 shadow-lg">
-              Get Started
+              Mulai Sekarang
             </Button>
           </nav>
         </div>
