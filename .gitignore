@@ -1,0 +1,73 @@
+# ==========================
+#  NEXT.JS / REACT PROJECT
+# ==========================
+
+# Node dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+.next/
+out/
+dist/
+
+# Local env files (jangan commit rahasia)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS cache / temporary
+.tmp/
+.cache/
+
+# Testing / coverage
+coverage/
+jest-cache/
+jest-html-reporters-*
+*.lcov
+
+# Misc / temporary tools
+*.tgz
+*.zip
+*.tar
+*.gz
+
+# TypeScript build output
+*.tsbuildinfo
+
+# Storybook / Vercel
+storybook-static/
+.vercel/
+
+# PM2 / Runtime specific
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Local uploads (optional)
+public/uploads/
+uploads/
+
+# Local Docker build cache (jika pakai)
+docker-data/
