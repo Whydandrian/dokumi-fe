@@ -10,6 +10,7 @@ import {
   Smartphone,
   ArrowRight,
   FileScan,
+  Signature,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import ConversionCard from '@/components/ConversionCard';
@@ -80,6 +81,12 @@ export default function Home() {
                 description="Ekstrak teks dari gambar & dokumen"
                 icon={<FileScan className="w-7 h-7 text-white" />}
                 acceptedFormats=".jpg,.jpeg,.png,.pdf"
+              />
+              <ConversionCard
+                title="Tandatangan Digital"
+                description="Tambahkan tandatangan elektronik ke PDF Anda"
+                icon={<Signature className="w-7 h-7 text-white" />}
+                acceptedFormats=".pdf"
               />
             </div>
           </div>
