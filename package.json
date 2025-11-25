@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && next export",
-    "start": "npx serve@latest out -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
