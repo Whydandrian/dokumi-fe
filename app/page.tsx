@@ -11,6 +11,9 @@ import {
   ArrowRight,
   FileScan,
   Signature,
+  Minimize,
+  Combine,
+  SquareSplitHorizontal,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import ConversionCard from '@/components/ConversionCard';
@@ -62,37 +65,49 @@ export default function Home() {
                 title="Image to PDF"
                 description="Ubah gambar apa pun menjadi file PDF"
                 icon={<FileImage className="w-7 h-7 text-white" />}
-                acceptedFormats=".jpg,.jpeg,.png,.gif,.bmp,.webp"
+                href="/tools/image-to-pdf"
               />
               <ConversionCard
                 title="Word to PDF"
                 description="Konversi dokumen Anda menjadi PDF"
                 icon={<FileText className="w-7 h-7 text-white" />}
-                acceptedFormats=".doc,.docx"
+                href="/tools/word-to-pdf"
               />
               <ConversionCard
                 title="PowerPoint to PDF"
                 description="Konversi PowerPoint Anda ke PDF"
                 icon={<Presentation className="w-7 h-7 text-white" />}
-                acceptedFormats=".ppt,.pptx"
+                href="/tools/powerpoint-to-pdf"
+              />
+              <ConversionCard
+                title="Merge PDF"
+                description="Gabungkan beberapa file PDF"
+                icon={<Combine className="w-7 h-7 text-white" />}
+                href="/tools/merge-pdf"
+              />
+              <ConversionCard
+                title="Split PDF"
+                description="Pisahkan file PDF jadi beberapa bagian"
+                icon={<SquareSplitHorizontal className="w-7 h-7 text-white" />}
+                href="/tools/split-pdf"
               />
               <ConversionCard
                 title="OCR"
                 description="Ekstrak teks dari gambar & dokumen"
                 icon={<FileScan className="w-7 h-7 text-white" />}
-                acceptedFormats=".jpg,.jpeg,.png,.pdf"
+                href="/tools/ocr"
               />
               <ConversionCard
-                title="Tandatangan Digital"
-                description="Tambahkan tandatangan elektronik ke PDF Anda"
-                icon={<Signature className="w-7 h-7 text-white" />}
-                acceptedFormats=".pdf"
+                title="Kompres PDF"
+                description="Perkecil ukuran file PDF Anda"
+                icon={<Minimize className="w-7 h-7 text-white" />}
+                href="/tools/compress-pdf"
               />
             </div>
           </div>
         </section>
 
-        <section id="features" className="py-16 md:py-24 bg-white">
+        <section id="home" className="py-16 md:py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
