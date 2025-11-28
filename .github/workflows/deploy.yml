@@ -61,12 +61,26 @@ jobs:
           package-lock.json \
           next.config.js
 
+    - name: 🔍 Debug Connection
+      run: |
+        echo "Testing connection to ${{ secrets.VPS_HOST }}"
+        echo "Checking if port 22 is reachable..."
+        timeout 10 bash -c "cat < /dev/null > /dev/tcp/${{ secrets.VPS_HOST }}/22" && echo "Port 22 is OPEN" || echo "Port 22 is CLOSED or FILTERED"
+        
+        echo "Attempting to resolve hostname..."
+        nslookup ${{ secrets.VPS_HOST }} || echo "DNS resolution failed"
+        
+        echo "Checking SSH key format..."
+        echo "${{ secrets.VPS_SSH_KEY }}" | head -1
+        echo "${{ secrets.VPS_SSH_KEY }}" | tail -1
+
     - name: 🚀 Upload to VPS
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.VPS_SSH_KEY }}
+        port: 22  # Ubah jika SSH di port lain (misal 2222)
         source: "deploy.tar.gz"
         target: "/tmp/"
         timeout: 300s
@@ -78,6 +92,7 @@ jobs:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.VPS_SSH_KEY }}
+        port: 22  # Ubah jika SSH di port lain (misal 2222)
         timeout: 300s
         script: |
           set -e
@@ -136,6 +151,7 @@ jobs:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.VPS_SSH_KEY }}
+        port: 22  # Ubah jika SSH di port lain (misal 2222)
         script: |
           echo "💥 Deployment failed! Rolling back..."
           
