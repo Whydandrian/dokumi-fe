@@ -1,4 +1,4 @@
-name: Deploy Dokumi FE to VPS
+name: Deploy Dokumi FE to VPS (Self-hosted)
 
 on:
   push:
@@ -7,200 +7,59 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
-    
+    runs-on: [self-hosted, dokumi, linux]
+
     steps:
-    - name: 📥 Checkout Repository
+    - name: Checkout
       uses: actions/checkout@v4
 
-    - name: 🔧 Setup Node.js
+    - name: Setup Node
       uses: actions/setup-node@v4
       with:
         node-version: '24'
         cache: 'npm'
-
-    - name: 📦 Install Dependencies
+    
+    - name: Install deps
       run: npm ci
 
-    - name: 📝 Create Environment Files
+    - name: Create env
       run: |
-        # Jika ada ENV_PRODUCTION di secrets
         if [ -n "${{ secrets.ENV_PRODUCTION }}" ]; then
           echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
         fi
-        
-        # Atau buat manual dengan API URL
         if [ -n "${{ secrets.NEXT_PUBLIC_API_URL }}" ]; then
           echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env.production
         fi
 
-    - name: 🏗️ Build Application
+    - name: Build
       run: npm run build
       env:
         NODE_ENV: production
 
-    - name: 🧹 Install Production Dependencies Only
+    - name: Install production deps only
       run: |
         rm -rf node_modules
         npm ci --production
 
-    - name: 📦 Create Deployment Package
+    - name: Deploy locally
       run: |
-        tar -czf deploy.tar.gz \
-          .next \
-          node_modules \
-          public \
-          package.json \
-          package-lock.json \
-          next.config.js \
-          .env.production 2>/dev/null || tar -czf deploy.tar.gz \
-          .next \
-          node_modules \
-          public \
-          package.json \
-          package-lock.json \
-          next.config.js
+        set -e
+        DEPLOY_DIR=/var/www/dokumi-fe    # ganti sesuai VPS_PATH
+        sudo mkdir -p $DEPLOY_DIR
+        sudo chown $USER:$USER $DEPLOY_DIR
 
-    - name: 🔍 Debug Connection
+        # Backup
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        tar -czf /tmp/backup-dokumi-fe-$TIMESTAMP.tar.gz -C $DEPLOY_DIR . || true
+
+        # Copy files (sesuaikan)
+        rsync -a --delete .next node_modules public package.json package-lock.json next.config.js .env.production $DEPLOY_DIR/
+
+        # set permission & restart pm2
+        sudo chmod -R 755 $DEPLOY_DIR
+        pm2 restart dokumi-fe || pm2 start npm --name "dokumi-fe" -- start
+
+    - name: Health check
       run: |
-        echo "Testing connection to ${{ secrets.VPS_HOST }}"
-        echo "Checking if port 22 is reachable..."
-        timeout 10 bash -c "cat < /dev/null > /dev/tcp/${{ secrets.VPS_HOST }}/22" && echo "Port 22 is OPEN" || echo "Port 22 is CLOSED or FILTERED"
-        
-        echo "Attempting to resolve hostname..."
-        nslookup ${{ secrets.VPS_HOST }} || echo "DNS resolution failed"
-        
-        echo "Checking SSH key format..."
-        echo "${{ secrets.VPS_SSH_KEY }}" | head -1
-        echo "${{ secrets.VPS_SSH_KEY }}" | tail -1
-
-    - name: 🚀 Upload to VPS
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: 22  # Ubah jika SSH di port lain (misal 2222)
-        source: "deploy.tar.gz"
-        target: "/tmp/"
-        timeout: 300s
-
-    - name: 🔄 Deploy on VPS
-      id: deploy
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: 22  # Ubah jika SSH di port lain (misal 2222)
-        timeout: 300s
-        script: |
-          set -e
-          
-          echo "📦 Starting deployment..."
-          
-          # Store backup filename
-          BACKUP_FILE="/tmp/backup-dokumi-fe-$(date +%Y%m%d-%H%M%S).tar.gz"
-          
-          # Backup current build
-          if [ -d "${{ secrets.VPS_PATH }}/.next" ]; then
-            echo "💾 Creating backup at $BACKUP_FILE..."
-            tar -czf "$BACKUP_FILE" -C ${{ secrets.VPS_PATH }} .next node_modules 2>/dev/null || echo "Backup skipped"
-            echo "BACKUP_FILE=$BACKUP_FILE" >> $GITHUB_OUTPUT
-          fi
-          
-          # Extract deployment package
-          echo "📂 Extracting deployment..."
-          cd ${{ secrets.VPS_PATH }}
-          tar -xzf /tmp/deploy.tar.gz
-          
-          # Set correct permissions
-          echo "🔐 Setting permissions..."
-          chmod -R 755 node_modules/.bin 2>/dev/null || true
-          
-          # Restart PM2
-          echo "🔄 Restarting application..."
-          export PATH=$PATH:/usr/local/bin:/usr/bin
-          
-          if pm2 describe ${{ secrets.PM2_APP_NAME }} > /dev/null 2>&1; then
-            echo "♻️  Restarting existing application..."
-            pm2 restart ${{ secrets.PM2_APP_NAME }} --update-env
-          else
-            echo "🚀 Starting new application..."
-            pm2 start npm --name "${{ secrets.PM2_APP_NAME }}" -- start
-            pm2 save
-          fi
-          
-          # Wait for app to start
-          sleep 5
-          
-          # Cleanup
-          echo "🧹 Cleaning up..."
-          rm -f /tmp/deploy.tar.gz
-          
-          # Keep only last 5 backups
-          cd /tmp && ls -t backup-dokumi-fe-*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
-          
-          echo "✅ Deployment completed!"
-          pm2 status
-    
-    - name: ⏪ Rollback on Failure
-      if: failure() && steps.deploy.outcome == 'failure'
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: 22  # Ubah jika SSH di port lain (misal 2222)
-        script: |
-          echo "💥 Deployment failed! Rolling back..."
-          
-          # Find latest backup
-          LATEST_BACKUP=$(ls -t /tmp/backup-dokumi-fe-*.tar.gz 2>/dev/null | head -1)
-          
-          if [ -f "$LATEST_BACKUP" ]; then
-            echo "📦 Restoring from backup: $LATEST_BACKUP"
-            cd ${{ secrets.VPS_PATH }}
-            tar -xzf "$LATEST_BACKUP"
-            
-            export PATH=$PATH:/usr/local/bin:/usr/bin
-            pm2 restart ${{ secrets.PM2_APP_NAME }}
-            
-            echo "✅ Rollback completed!"
-          else
-            echo "⚠️  No backup found, manual intervention required"
-          fi
-
-    - name: 🏥 Health Check
-      run: |
-        echo "⏳ Waiting for application to start..."
-        sleep 10
-        
-        echo "🔍 Checking application health..."
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.VPS_HOST }} || echo "000")
-        
-        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
-          echo "✅ Application is healthy (HTTP $HTTP_CODE)"
-        else
-          echo "⚠️  Application returned HTTP $HTTP_CODE"
-          echo "Check logs: ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'pm2 logs ${{ secrets.PM2_APP_NAME }}'"
-        fi
-
-    - name: ✅ Deployment Success
-      if: success()
-      run: |
-        echo "🎉 Deployment completed successfully!"
-        echo "🌐 Application: https://${{ secrets.VPS_HOST }}"
-        echo "📊 Check status: ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'pm2 status'"
-        echo "📝 View logs: ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'pm2 logs ${{ secrets.PM2_APP_NAME }}'"
-
-    - name: ❌ Deployment Failed
-      if: failure()
-      run: |
-        echo "💥 Deployment failed!"
-        echo "🔍 Troubleshooting steps:"
-        echo "1. Check GitHub Actions logs above"
-        echo "2. SSH to VPS: ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
-        echo "3. Check PM2: pm2 status && pm2 logs ${{ secrets.PM2_APP_NAME }}"
-        echo "4. Check Nginx: sudo systemctl status nginx"
-        echo "5. Check Nginx logs: sudo tail -f /var/log/nginx/dokumi-error.log"
+        sleep 5
+        curl -sSf http://localhost:4000/ || exit 1
