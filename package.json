@@ -5,10 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "npx serve@latest out -p 4000",
+    "start": "next start -p 4000",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "export": "next export"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
