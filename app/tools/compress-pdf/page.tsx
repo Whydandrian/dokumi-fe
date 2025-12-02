@@ -45,8 +45,10 @@ export default function CompressPdfPage() {
       const formData = new FormData();
       formData.append('file', file);
 
+      const API = process.env.NEXT_PUBLIC_API_URL;
+
       const res = await fetch(
-        'http://127.0.0.1:5001/docs/api/tools/compress-pdf',
+        `${API}/docs/api/tools/compress-pdf`,
         {
           method: 'POST',
           body: formData,

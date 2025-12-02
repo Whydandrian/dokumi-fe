@@ -22,14 +22,14 @@ jobs:
     - name: Install deps
       run: npm ci
 
-    - name: Create env
-      run: |
-        if [ -n "${{ secrets.ENV_PRODUCTION }}" ]; then
-          echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
-        fi
-        if [ -n "${{ secrets.NEXT_PUBLIC_API_URL }}" ]; then
-          echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env.production
-        fi
+    # - name: Create env
+    #   run: |
+    #     if [ -n "${{ secrets.ENV_PRODUCTION }}" ]; then
+    #       echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
+    #     fi
+    #     if [ -n "${{ secrets.NEXT_PUBLIC_API_URL }}" ]; then
+    #       echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env.production
+    #     fi
 
     - name: Build
       run: npm run build

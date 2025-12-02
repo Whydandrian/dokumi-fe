@@ -35,8 +35,9 @@ export default function ConvertDocToPdfPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      const API = process.env.NEXT_PUBLIC_API_URL;
 
-      const res = await fetch("http://127.0.0.1:5001/docs/api/tools/convert-doc-to-pdf", {
+      const res = await fetch(`${API}/docs/api/tools/convert-doc-to-pdf`, {
         method: "POST",
         body: formData,
       });
