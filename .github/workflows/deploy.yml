@@ -24,17 +24,25 @@ jobs:
 
     - name: Create environment file
       run: |
+        echo "🔧 Creating .env.production file..."
+        
+        # Create .env.production with API URL
+        echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env.production
+        
+        # Add other env variables if exist
         if [ -n "${{ secrets.ENV_PRODUCTION }}" ]; then
-          echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
+          echo "${{ secrets.ENV_PRODUCTION }}" >> .env.production
         fi
-        if [ -n "${{ secrets.NEXT_PUBLIC_API_URL }}" ]; then
-          echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env.production
-        fi
+        
+        # Show env file (without sensitive data)
+        echo "📋 Environment variables:"
+        cat .env.production | grep -v "PASSWORD\|SECRET\|KEY" || echo "NEXT_PUBLIC_API_URL is set"
 
     - name: Build application
       run: npm run build
       env:
         NODE_ENV: production
+        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
     - name: Install production dependencies only
       run: |

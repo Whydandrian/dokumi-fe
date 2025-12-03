@@ -4,7 +4,7 @@ const nextConfig = {
   
   // Environment variables untuk client-side
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://tools.itk.ac.id',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://tools.itk.ac.id',
   },
 
   // Rewrite untuk API proxy (opsional, jika mau bypass CORS)
