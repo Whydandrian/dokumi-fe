@@ -21,8 +21,8 @@ export default function Header() {
               <Image
                 src="/images/Logo_ITK.webp"
                 alt="Dokumi Logo"
-                width={24}
-                height={24}
+                width={96}
+                height={96}
                 className="w-24"
               />
             </a>
