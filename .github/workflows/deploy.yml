@@ -1,46 +1,50 @@
-name: Deploy Dokumi FE
+name: Deploy FE
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Install Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install dependencies (CI mode)
-        run: npm ci
+      - name: Install deps
+        run: npm install
 
-      - name: Build Next.js
+      - name: Build NextJS
         run: npm run build
 
-      - name: Create artifact folder
-        run: |
-          mkdir -p deploy
-          cp -r .next deploy/
-          cp -r public deploy/
-          cp package.json deploy/
-          cp next.config.js deploy/
+      ## CLEAN REMOTE
+      - name: Clean target directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          script: |
+            rm -rf /var/www/dokumi-fe/*
 
-      - name: Upload to VPS
+      ## SCP FILES
+      - name: Upload build output
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
-          source: "deploy/*"
+          source: ".next,public,package.json"
           target: "/var/www/dokumi-fe"
-          strip_components: 1
+          strip_components: 0
 
+      ## RESTART PM2
       - name: Restart PM2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -49,4 +53,5 @@ jobs:
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           script: |
             cd /var/www/dokumi-fe
-            pm2 reload dokumi-fe
+            pm2 restart dokumi-fe || pm2 start npm --name dokumi-fe -- start
+            pm2 save
