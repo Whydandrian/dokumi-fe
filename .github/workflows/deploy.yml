@@ -1,184 +1,52 @@
-name: Deploy Dokumi FE to VPS (Self-hosted)
+name: Deploy Dokumi FE
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: ["main"]
 
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Setup Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: '24'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
-    - name: Create environment file
-      run: |
-        echo "🔧 Creating .env.production file..."
-        
-        # Create .env.production with API URL
-        echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env.production
-        
-        # Add other env variables if exist
-        if [ -n "${{ secrets.ENV_PRODUCTION }}" ]; then
-          echo "${{ secrets.ENV_PRODUCTION }}" >> .env.production
-        fi
-        
-        # Show env file (without sensitive data)
-        echo "📋 Environment variables:"
-        cat .env.production | grep -v "PASSWORD\|SECRET\|KEY" || echo "NEXT_PUBLIC_API_URL is set"
+      - name: Install dependencies (CI mode)
+        run: npm ci
 
-    - name: Build application
-      run: npm run build
-      env:
-        NODE_ENV: production
-        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+      - name: Build Next.js
+        run: npm run build
 
-    - name: Install production dependencies only
-      run: |
-        rm -rf node_modules
-        npm ci --production
+      - name: Create artifact folder
+        run: |
+          mkdir -p deploy
+          cp -r .next deploy/
+          cp -r public deploy/
+          cp package.json deploy/
+          cp next.config.js deploy/
 
-    - name: Prepare deployment directory
-      run: |
-        DEPLOY_DIR=/var/www/dokumi-fe
-        
-        # Create directory if not exists (dengan sudo jika perlu)
-        if [ ! -d "$DEPLOY_DIR" ]; then
-          echo "📁 Creating deployment directory..."
-          sudo mkdir -p $DEPLOY_DIR
-          sudo chown $USER:$USER $DEPLOY_DIR
-        fi
-        
-        # Verify ownership
-        OWNER=$(stat -c '%U' $DEPLOY_DIR)
-        if [ "$OWNER" != "$USER" ]; then
-          echo "🔐 Fixing ownership..."
-          sudo chown -R $USER:$USER $DEPLOY_DIR
-        fi
-        
-        echo "✅ Directory ready: $DEPLOY_DIR"
-        ls -la $DEPLOY_DIR
+      - name: Upload to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          source: "deploy/*"
+          target: "/var/www/dokumi-fe"
+          strip_components: 1
 
-    - name: Backup current deployment
-      run: |
-        DEPLOY_DIR=/var/www/dokumi-fe
-        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-        
-        if [ -d "$DEPLOY_DIR/.next" ]; then
-          echo "💾 Creating backup..."
-          tar -czf /tmp/backup-dokumi-fe-$TIMESTAMP.tar.gz \
-            -C $DEPLOY_DIR .next node_modules 2>/dev/null || echo "Backup skipped"
-        fi
-        
-        # Keep only last 5 backups
-        cd /tmp && ls -t backup-dokumi-fe-*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
-
-    - name: Deploy files
-      run: |
-        DEPLOY_DIR=/var/www/dokumi-fe
-        RUNNER_DIR=$GITHUB_WORKSPACE
-        
-        echo "📦 Deploying from: $RUNNER_DIR"
-        echo "📦 Deploying to: $DEPLOY_DIR"
-        
-        # Deploy dengan rsync (TANPA sudo, TANPA preserve group)
-        rsync -av --delete \
-          --no-perms --no-owner --no-group \
-          --exclude='.git' \
-          --exclude='node_modules/.cache' \
-          "$RUNNER_DIR/.next/" "$DEPLOY_DIR/.next/"
-        
-        rsync -av --delete \
-          --no-perms --no-owner --no-group \
-          "$RUNNER_DIR/node_modules/" "$DEPLOY_DIR/node_modules/"
-        
-        rsync -av \
-          --no-perms --no-owner --no-group \
-          "$RUNNER_DIR/public/" "$DEPLOY_DIR/public/"
-        
-        # Copy individual files
-        cp "$RUNNER_DIR/package.json" "$DEPLOY_DIR/"
-        cp "$RUNNER_DIR/package-lock.json" "$DEPLOY_DIR/"
-        cp "$RUNNER_DIR/next.config.js" "$DEPLOY_DIR/"
-        
-        # Copy .env if exists
-        if [ -f "$RUNNER_DIR/.env.production" ]; then
-          cp "$RUNNER_DIR/.env.production" "$DEPLOY_DIR/"
-        fi
-        
-        echo "✅ Files deployed successfully"
-
-    - name: Set correct permissions
-      run: |
-        DEPLOY_DIR=/var/www/dokumi-fe
-        
-        # Set permissions (bukan ownership)
-        chmod -R u+rwX,go+rX "$DEPLOY_DIR"
-        
-        # Make node_modules/.bin executable
-        find "$DEPLOY_DIR/node_modules/.bin" -type f -exec chmod +x {} \; 2>/dev/null || true
-        
-        echo "✅ Permissions set"
-
-    - name: Restart PM2
-      run: |
-        export PATH=$PATH:/usr/local/bin:/usr/bin
-        
-        if pm2 describe dokumi-fe > /dev/null 2>&1; then
-          echo "♻️ Restarting dokumi-fe..."
-          pm2 restart dokumi-fe --update-env
-        else
-          echo "🚀 Starting dokumi-fe..."
-          cd /var/www/dokumi-fe
-          pm2 start npm --name "dokumi-fe" -- start
-          pm2 save
-        fi
-        
-        pm2 status
-
-    - name: Health check
-      run: |
-        echo "⏳ Waiting for application to start..."
-        sleep 10
-        
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/ || echo "000")
-        
-        if [ "$HTTP_CODE" = "200" ]; then
-          echo "✅ Application is healthy (HTTP $HTTP_CODE)"
-        else
-          echo "⚠️ Health check failed (HTTP $HTTP_CODE)"
-          pm2 logs dokumi-fe --lines 50 --nostream
-          exit 1
-        fi
-
-    - name: Rollback on failure
-      if: failure()
-      run: |
-        echo "💥 Deployment failed! Rolling back..."
-        
-        DEPLOY_DIR=/var/www/dokumi-fe
-        LATEST_BACKUP=$(ls -t /tmp/backup-dokumi-fe-*.tar.gz 2>/dev/null | head -1)
-        
-        if [ -f "$LATEST_BACKUP" ]; then
-          echo "📦 Restoring from: $LATEST_BACKUP"
-          cd $DEPLOY_DIR
-          tar -xzf "$LATEST_BACKUP"
-          
-          export PATH=$PATH:/usr/local/bin:/usr/bin
-          pm2 restart dokumi-fe
-          
-          echo "✅ Rollback completed"
-        else
-          echo "⚠️ No backup found, manual intervention required"
-        fi
+      - name: Restart PM2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          script: |
+            cd /var/www/dokumi-fe
+            pm2 reload dokumi-fe
